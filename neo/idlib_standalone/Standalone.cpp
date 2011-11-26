@@ -28,9 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../idlib/precompiled.h"
 #include "../sys/sys_local.h"
+#include "Standalone.h"
 #pragma hdrstop
-
-#include "TypeInfoGen.h"
 
 idSession *			session = NULL;
 idDeclManager *		declManager = NULL;
@@ -242,66 +241,35 @@ void			idSysLocal::FPU_EnableExceptions( int exceptions ) { }
 idSysLocal		sysLocal;
 idSys *			sys = &sysLocal;
 
-
 /*
-==============================================================
+===============================================================================
 
-	main
+	idLibStandalone methods
 
-==============================================================
+===============================================================================
 */
 
-int main( int argc, char** argv ) {
-	idStr fileName, sourcePath;
-	idTypeInfoGen *generator;
 
-	idLib::common = common;
-	idLib::cvarSystem = cvarSystem;
-	idLib::fileSystem = fileSystem;
-	idLib::sys = sys;
+/*
+================
+Init
 
-	idLib::Init();
-	cmdSystem->Init();
-	cvarSystem->Init();
-	idCVar::RegisterStaticVars();
-	fileSystem->Init();
+Starts everything up and tries to intelligently set paths.
+================
+*/
 
-	generator = new idTypeInfoGen;
+void idLibStandalone::Init(const char *basePath, const char *savePath, const char *cdPath, const char *devPath)
+{
+}
 
-	if ( argc > 1 ) {
-		sourcePath = idStr( "../"SOURCE_CODE_BASE_FOLDER"/" ) + argv[1];
-	} else {
-		sourcePath = "../"SOURCE_CODE_BASE_FOLDER"/game";
-	}
+/*
+================
+Shutdown
 
-	if ( argc > 2 ) {
-		fileName = idStr( "../"SOURCE_CODE_BASE_FOLDER"/" ) + argv[2];
-	} else {
-		fileName = "../"SOURCE_CODE_BASE_FOLDER"/game/gamesys/GameTypeInfo.h";
-	}
+Cleans things up.
+================
+*/
 
-	if ( argc > 3 ) {
-		for ( int i = 3; i < argc; i++ ) {
-			generator->AddDefine( argv[i] );
-		}
-	} else {
-		generator->AddDefine( "__cplusplus" );
-		generator->AddDefine( "GAME_DLL" );
-		generator->AddDefine( "ID_TYPEINFO" );
-	}
-
-	generator->CreateTypeInfo( sourcePath );
-	generator->WriteTypeInfo( fileName );
-
-	delete generator;
-
-	fileName.Clear();
-	sourcePath.Clear();
-
-	fileSystem->Shutdown( false );
-	cvarSystem->Shutdown();
-	cmdSystem->Shutdown();
-	idLib::ShutDown();
-
-	return 0;
+void idLibStandalone::Shutdown()
+{
 }
