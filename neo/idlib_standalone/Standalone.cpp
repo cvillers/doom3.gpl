@@ -260,6 +260,17 @@ Starts everything up and tries to intelligently set paths.
 
 void idLibStandalone::Init(const char *basePath, const char *savePath, const char *cdPath, const char *devPath)
 {
+	idLib::common = common;
+	idLib::cvarSystem = cvarSystem;
+	idLib::fileSystem = fileSystem;
+	idLib::sys = sys;
+
+	idLib::Init();
+	cmdSystem->Init();
+	cvarSystem->Init();
+	idCVar::RegisterStaticVars();
+	InitPaths();
+	fileSystem->Init();
 }
 
 /*
@@ -272,4 +283,47 @@ Cleans things up.
 
 void idLibStandalone::Shutdown()
 {
+	fileSystem->Shutdown( false );
+	cvarSystem->Shutdown();
+	cmdSystem->Shutdown();
+	idLib::ShutDown();
+}
+
+/*
+================
+InitPaths
+
+Sets up the root paths needed by the file system.
+================
+*/
+void idLibStandalone::InitPaths(const char *basePath, const char *savePath, const char *cdPath, const char *devPath)
+{
+	if(strcmp(basePath, "basePath") == 0)
+	{
+		const char *path = getenv("IDLIB_BASEPATH");
+		if(base != NULL)
+			cvarSystem->SetCVarString("fs_basepath", path);
+	}
+
+	if(strcmp(savePath, "savePath") == 0)
+	{
+		const char *path = getenv("IDLIB_SAVEPATH");
+		if(path != NULL)
+			cvarSystem->SetCVarString("fs_savepath", path);
+	}
+
+	if(strcmp(cdPath, "cdPath") == 0)
+	{
+		const char *path = getenv("IDLIB_CDPATH");
+		if(path != NULL)
+			cvarSystem->SetCVarString("fs_cdpath", path);
+	}
+
+	if(strcmp(devPath, "devPath") == 0)
+	{
+		const char *path = getenv("IDLIB_DEVPATH");
+		if(path != NULL)
+			cvarSystem->SetCVarString("fs_savepath", path);
+	}
+
 }
