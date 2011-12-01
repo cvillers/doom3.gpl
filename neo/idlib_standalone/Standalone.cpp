@@ -45,6 +45,10 @@ int idEventLoop::JournalLevel( void ) const { return 0; }
 ==============================================================
 */
 
+// Need to have a couple of cvars available
+
+idCVar com_developer( "developer", "1", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );		// generally the standalone lib is used in dev tools
+
 #define STDIO_PRINT( pre, post )	\
 	va_list argptr;					\
 	va_start( argptr, fmt );		\
@@ -52,7 +56,6 @@ int idEventLoop::JournalLevel( void ) const { return 0; }
 	vprintf( fmt, argptr );			\
 	printf( post );					\
 	va_end( argptr )
-
 
 class idCommonLocal : public idCommon {
 public:
@@ -75,21 +78,70 @@ public:
 	virtual void			SetRefreshOnPrint( bool set ) {}
 	virtual void			Printf( const char *fmt, ... ) { STDIO_PRINT( "", "" ); }
 	virtual void			VPrintf( const char *fmt, va_list arg ) { vprintf( fmt, arg ); }
-	virtual void			DPrintf( const char *fmt, ... ) { /*STDIO_PRINT( "", "" );*/ }
-	virtual void			Warning( const char *fmt, ... ) { STDIO_PRINT( "WARNING: ", "\n" ); }
-	virtual void			DWarning( const char *fmt, ...) { /*STDIO_PRINT( "WARNING: ", "\n" );*/ }
-	virtual void			PrintWarnings( void ) {}
-	virtual void			ClearWarnings( const char *reason ) {}
-	virtual void			Error( const char *fmt, ... ) { STDIO_PRINT( "ERROR: ", "\n" ); exit(0); }
-	virtual void			FatalError( const char *fmt, ... ) { STDIO_PRINT( "FATAL ERROR: ", "\n" ); exit(0); }
+
+	virtual void			DPrintf( const char *fmt, ... )
+	{
+		if(!cvarSystem->IsInitialized() || !com_developer.GetBool())
+			return;
+		STDIO_PRINT( S_COLOR_RED"", "" );
+	}
+
+	virtual void			Warning( const char *fmt, ... )
+	{
+	        va_list         argptr;                                                                                                                                                                                        char            msg[MAX_PRINT_MSG_SIZE];
+		
+		va_start( argptr, fmt );
+		idStr::vsnPrintf( msg, sizeof(msg), fmt, argptr );
+		va_end( argptr );
+		msg[sizeof(msg)-1] = 0;   
+		
+		Printf(S_COLOR_YELLOW"%s", msg);
+		warningList.AddUnique(msg);
+	}
+
+	virtual void			DWarning( const char *fmt, ...)
+	{
+		if(!com_developer.GetBool())
+			return;
+		STDIO_PRINT( S_COLOR_YELLOW"WARNING: ", "\n" );
+	}
+
+	virtual void			PrintWarnings( void )
+	{
+		int i;
+		if(!warningList.Num())
+			return;
+
+		warningList.Sort();
+		Printf( "------------- Warnings ---------------\n" );
+		Printf( "during %s...\n", warningCaption.c_str() );
+
+		for(i = 0; i < warningList.Num(); i++)
+		{
+			Printf(S_COLOR_YELLOW "WARNING: " S_COLOR_RED "%s\n", warningList[i].c_str())
+		}
+
+		Printf("%d warnings\n", warningList.Num());
+	}
+
+	virtual void			ClearWarnings( const char *reason )
+	{
+		warningCaption = reason;
+		warningList.Clear();
+	}
+
+	virtual void			Error( const char *fmt, ... ) { STDIO_PRINT( S_COLOR_RED"ERROR: ", "\n" ); exit(0); }
+	virtual void			FatalError( const char *fmt, ... ) { STDIO_PRINT( S_COLOR_RED"FATAL ERROR: ", "\n" ); exit(0); }
 	virtual const idLangDict *GetLanguageDict() { return NULL; }
 	virtual const char *	KeysFromBinding( const char *bind ) { return NULL; }
 	virtual const char *	BindingFromKey( const char *key ) { return NULL; }
 	virtual int				ButtonState( int key ) { return 0; }
 	virtual int				KeyState( int key ) { return 0; }
-};
 
-idCVar com_developer( "developer", "0", CVAR_BOOL|CVAR_SYSTEM, "developer mode" );
+private:
+	idStr					warningReason;
+	idStrList				warningList;
+};
 
 idCommonLocal		commonLocal;
 idCommon *			common = &commonLocal;
@@ -269,7 +321,7 @@ void idLibStandalone::Init(const char *basePath, const char *savePath, const cha
 	cmdSystem->Init();
 	cvarSystem->Init();
 	idCVar::RegisterStaticVars();
-	InitPaths();
+	InitPaths(basePath, savePath, cdPath, devPath);
 	fileSystem->Init();
 }
 
